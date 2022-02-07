@@ -1,0 +1,29 @@
+program promedio_de_notas;
+
+var 
+n, i: integer;
+s : list of string;
+si : string;
+
+begin
+
+	write( "Entre la cantidad de Nombres: " );
+	read ( n );
+	write ( "Entre los", n, "nombres: " );
+	
+	i := 0;
+	while i < n do
+	begin
+	   read ( si );
+	   s.append( si );
+	   i := i + 1;
+	end
+
+	write ( "Los nombres entrados son:" );
+	i := 0;
+	while i < n do
+	begin
+		write ( s[i] );
+		i := i+1;
+	end
+end.

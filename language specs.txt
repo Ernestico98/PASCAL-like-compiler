@@ -1,0 +1,219 @@
+Para el analisis sintactico y transformar a la forma interna debe ejecutar la siguiente instruccion:
+
+./parse < $1 > forma_interna.txt
+
+donde $1 es el codigo fuente.
+Nota: el flujo de salida debe ser hacia forma_interna.txt ya que el interprete lee la forma interna desde este fichero.
+
+Para ejecutar el interprete simplemente ejecute
+
+./interprete
+
+luego de haber realizado el analisis sintactico del codigo fuente y la traduccion a la forma interna.
+
+
+DESCRIPCION DEL LENGUAJE
+* El lenguaje es tipo pascal. Ver los ejemplos de codigos adjuntos.
+* El lenguaje implementa los tipos de datos
+	t_integer
+	t_char
+	t_real
+	t_string 
+	t_boolean
+	t_list
+* Las listas solo pueden ser de una dimension, o sea, no pueden ser listas de listas, solo de alguno de los 5 primeros tipos de datos, 
+esto se detecta como error en el analisis sintactico.
+* El lenguaje es fuertemente tipado, o sea, no hay compatibilidad de tipos de datos y los operadores solo se pueden aplicar a datos del mismo
+tipo, con la excepcion del operador de suma ('+') para un string y un char, que se entiende como agregar el char al final del string.
+* Los string son inmutables, es decir, no se puede modificar una posicion de un string.
+* Los errores de tipo se determinan en el analisis sintactico, mientras que el interprete determina en tiempo de ejecucion errores de indices fuera de rango.
+* No se implemento la llamada o declaracion de funciones y procedimientos ( No es un requisito del trabajo ), por lo que sintacticamente no existen reglas para
+reconocer expresiones de este tipo, con la excepcion de las que se describen a continuacion.
+* Se implementaron como nativas al lenguaje las funciones:
+	READ: que lee una variable o una lista de variables separadas por coma
+	WRITE: que escribe una expresion o una lista de expresiones separadas por coma
+	LEN: devuelve el tamanno de una lista
+	APPEND: agrega un elemento al final de una lista
+* La escritura y lectura es por consonla, no se implemento soporte para ficheros. ( No es requisito del trabajo ).
+* La gramatica del lenguaje es la siguiente, dada en el formato que usa yacc para definir las reglas de produccion. Los atributos escritos en minusculas son los no terminales y los que estan en mayusculas
+o entre comillas simples son los terminales de la gramatica. ( Nota: fue necesario el uso de la dirctiva %left de yacc para dar precedencia a los operadores aritmeticos y desambiguar la gramatica en
+este sentido. Fue necesario el uso de una epsilon transicion para indicar que el programa puede ser un bloque vacio, pero esta puede ser eliminada forzando a escribir al menos una sentencia ).
+
+    1 programa: cabecera zona_declaracion bloque '.'
+
+    2 cabecera: PROGRAM ID ';'
+
+    3 zona_declaracion: VAR variables
+
+    4 variables: declaracion_variables ';'
+    5          | variables declaracion_variables ';'
+
+    6 declaracion_variables: nombres_variables ':' t_dato
+
+    7 nombres_variables: ID
+    8                  | nombres_variables ',' ID
+
+    9 t_dato: REAL
+   10       | CHAR
+   11       | BOOLEAN
+   12       | INTEGER
+   13       | STRING
+   14       | LIST OF t_dato
+
+   15 bloque: BEG sentencias END
+
+   16 sentencias: sentencias sentencia
+   17           | %empty
+
+   18 sentencia: asignacion ';'
+   19          | bloque
+   20          | estructura_control
+   21          | READ '(' lista_variables ')' ';'
+   22          | WRITE '(' lista_expresiones ')' ';'
+   23          | ID '.' APPEND '(' expresion ')' ';'
+
+   24 lista_variables: variable
+   25                | lista_variables ',' variable
+
+   26 lista_expresiones: expresion
+   27                  | lista_expresiones ',' expresion
+
+   28 asignacion: variable OP_ASIGNACION expresion
+
+   29 variable: ID
+   30         | elemento_lista
+
+   31 elemento_lista: ID '[' expresion ']'
+
+   32 expresion: expresion '+' expresion
+   33          | expresion '-' expresion
+   34          | expresion '*' expresion
+   35          | expresion DIV expresion
+   36          | expresion MOD expresion
+   37          | '(' expresion ')'
+   38          | literal
+   39          | variable
+   40          | exp_unaria
+   41          | LEN '(' ID ')'
+
+   42 literal: LITERAL_INT
+   43        | LITERAL_REAL
+   44        | LITERAL_CHAR
+   45        | LITERAL_BOOL
+   46        | LITERAL_STRING
+
+   47 exp_unaria: '-' expresion
+
+   48 estructura_control: alternativa
+   49                   | iterativa
+
+   50 alternativa: IF condicional THEN bloque
+   51            | IF condicional THEN bloque ELSE bloque
+
+   52 condicional: condicional AND condicional
+   53            | condicional OR condicional
+   54            | '(' condicional ')'
+   55            | expresion op_comparacion expresion
+
+   56 op_comparacion: LESS
+   57               | GREATER
+   58               | EQ
+   59               | LE
+   60               | GE
+   61               | NE
+
+   62 iterativa: WHILE condicional DO bloque
+
+* La forma interna utilizada se describe a continuacion. Fue elaborada luego de realizar el analisis sintactico de forma conveniente a las necesidades semanticas
+derivadas del mismo. Es de tipo pila y cuenta con 40 operadores o palabras reservadas que se describen a continuacion.
+	VAR : indica que se va a declarar una variable con el nombre especificado
+	
+	DECL_TYPE : crea una instacia en la tabla de simbolos para todas las variables declaradas con la instruccion anterior hasta la ultima ocurrencia del operador DECL_TYPE y le asigna 
+				el tipo especificado.
+				
+	CARGA :  carga en el tope de la pila el ptro que hace referencia a la instancia de la variable en la tabla de simbolos con el nombre que se encuentra en el tope de la pila.
+
+	CARGA_IND : carga la referencia a la variable de tipo contenedor en una posicion especifica, la variable y la posicion estan respectivamente en las 2 primeras posiciones en el tope de la pila.
+	
+	LIT_INT : carga en el tope de la pila un literal entero
+	
+	LIT_REAL : carga en el tope de la pila un literal real
+	
+	LIT_CHAR : carga en el tope de la pila un literal char
+	
+	LIT_BOOL : carga en el tope de la pila un literal boolean
+	
+	LIT_STRING : carga en el tope de la pila un literal string
+	
+	PUSH_STR : carga en el tope de la pila un nombre de variable especificado. ( Se usa antes del operados CARGA )
+	
+	ASIGNA : Asigna a la variable en el tope-1 de la pila el valor en el tope de la pila.
+	
+	LESS : Compara si el elemento en el tope-1 de la pila es menor que el elemento en el tope de la pila
+	
+	GREATER : Compara si el elemento en el tope-1 de la pila es mayor que el elemento en el tope de la pila
+	
+	EQ : Compara si el elemento en el tope-1 de la pila es igual que el elemento en el tope de la pila
+	
+	LE : Compara si el elemento en el tope-1 de la pila es menor o igual que el elemento en el tope de la pila
+	
+	GE : Compara si el elemento en el tope-1 de la pila es mayor o igual que el elemento en el tope de la pila
+	
+	NE : Compara si el elemento en el tope-1 de la pila es diferente del elemento en el tope de la pila
+	
+	SUM_STR_CHAR : deja en el tope de la pila la concatenacion del string en el tope-1 de la pila y el caracter en el tope de la pila
+	
+	SUM_STR : deja en el tope de la pila la concatenacion del string en el tope-1 de la pila y el string en el tope de la pila
+	
+	SUM_INT : Suma los dos integers en el tope de la pila y lo deja en el tope.
+	
+	SUM_REAL :  Suma los dos reals en el tope de la pila y lo deja en el tope. 
+	
+	SUB_INT :   Resta los dos integers en el tope de la pila y lo deja en el tope.
+	
+	SUB_REAL : Resta los dos reals en el tope de la pila y lo deja en el tope. 
+	
+	MUL_INT : Multiplica los dos integers en el tope de la pila y lo deja en el tope.
+	
+	MUL_REAL : Multiplica los dos reals en el tope de la pila y lo deja en el tope. 
+	
+	LEN : Deja en el tope de la pila la longitud de un contenedor cargado en el tope de la pila.
+	
+	NEG_REAL : Deja en el tope de la pila el opuesto del real que se encuentra actualmente en el tope de la pila
+	
+	NEG_INT :  Deja en el tope de la pila el opuesto del integer que se encuentra actualmente en el tope de la pila
+	
+	LABEL :  Declara una etiqueta
+	
+	JF :  Mueve el ptro de instruccion hacia la linea donde se encuentra la etiqueta especificada si lo que hay en el tope de la pila es un boolean con valor falso
+	
+	JUMP : Mueve el ptro de instruccion hacia la linea donde se encuentra la etiqueta especificada
+	
+	WRITE_ENDL : Escribe un salto de linea hacia la consola y flushea el buffer de salida
+	
+	APPEND : Agrega al elemento de tipo lista en el tope-1 de la pila el elemento en el tope de la pila
+	
+	READ : Lee de la consola el elemento que se encuentra en el tope de la pila
+	
+	WRITE : Escribe hacia la consola el elemento que se encuentra en el tope de la pila
+	
+	WRITE_SPACE : Escribe un espacio hacia la consola
+	
+	DIV_INT : Divide los dos integers en el tope de la pila y lo deja en el tope ( [tope-1] / [tope] ).
+	
+	DIV_REAL : Divide los dos reals en el tope de la pila y lo deja en el tope ( [tope-1] / [tope] ).
+	
+	MOD_INT :  Modulea los dos integers en el tope de la pila y lo deja en el tope ( [tope-1] % [tope] ).
+	
+	AND : Realiza la operacion AND entre los dos primeros elementos que se encuentran en en tope de la pila y lo deja en tope
+	
+	OR : Realiza la operacion OR entre los dos primeros elementos que se encuentran en en tope de la pila y lo deja en tope
+	
+Nota: * No se epecefica en la descipcion de los operadores pero estos limpian del tope de la pila la informacion que ya no es necesaria y que puede
+		afectar la estabilidad en la corrida del interprete. Por ejemplo los operadores aritmeticos binarios eliminan del tope de la pila los operandos
+		e insertan luego el resultado de la operacion.
+	  * Los operadores OR y AND tienen la misma precedencia y se aplican de izquierda a derecha, es responsabilidad del programador parentizar correctamente la expresion en caso
+		de que vaya a emplear ambos en una misma condicion.
+
+
+

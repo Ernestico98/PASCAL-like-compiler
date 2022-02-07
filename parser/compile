@@ -1,0 +1,3 @@
+yacc -d yacc.cpp
+lex lex.cpp
+g++ lex.yy.c y.tab.c -oparser

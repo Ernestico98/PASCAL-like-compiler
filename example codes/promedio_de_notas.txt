@@ -1,0 +1,27 @@
+program promedio_de_notas;
+
+var 
+i, n, sum, tmp, prom : real;
+
+
+begin
+
+	write ( "Entre la cantidad de notas del estudiante :" );
+	read ( n );
+	
+	write ( "Entre las", n, "notas del estudiantes" );
+	
+	i := 1.0;
+	sum := 0.0;
+	while i <= n do
+	begin
+	   read ( tmp );
+	   sum := sum + tmp;
+	   i := i + 1.0;
+	end
+	
+	prom := sum div n;
+	
+	write ( "El promedio de las notas es", prom );
+
+end.

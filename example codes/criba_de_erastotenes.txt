@@ -1,0 +1,49 @@
+program criba;
+
+var
+n, i, j : integer;
+mark : list of boolean;
+primos : list of integer;
+
+
+begin
+	write ( "Entre el lim de n para calcular los primos:" );
+
+	read( n );
+	
+	i := 0;
+	while i <= n+1 do
+	begin
+		mark.append ( false );
+		i := i + 1;
+	end
+
+	primos.append(2);
+	i := 3;
+	while i <= n do
+	begin
+		if mark[i] = false then
+		begin	
+			primos.append ( i );
+			j := i*i;
+			while j <= n do
+			begin
+				mark[j] := true;
+				j := j + 2*i;
+			end 
+		end
+		i := i + 2;
+	end
+							
+	write ( "Los primos menores o iguales que", n, "son: ");	 
+	j := len (primos);
+	i := 0;
+	while i < j	do
+	begin
+		write ( primos[i] );
+		i := i+1;
+	end
+	
+	
+end.
+

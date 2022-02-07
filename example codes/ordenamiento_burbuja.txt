@@ -1,0 +1,45 @@
+program promedio_de_notas;
+
+var 
+n, i, j, tmp: integer;
+a: list of integer;
+
+begin
+
+	write ( "Entre la cantidad de enteros a ordenar:" );
+	read (n);
+	
+	i:= 0;
+	while i < n do
+	begin
+	   read(j);
+	   a.append(j);
+	   i := i+1;	
+	end
+	
+	i := 0;
+	while i < n do
+	begin
+		j := i+1;
+		while j < n do
+		begin
+		   if a[i] > a[j] then
+		   begin
+				tmp := a[i];
+				a[i] := a[j];
+				a[j] := tmp;
+		   end
+		   j := j+1;		
+		end
+		i := i+1;
+	end
+	
+	write ( "Lista ordenada: " );
+	i := 0;
+	while i < n do
+	begin
+		write ( a[i] ); 
+		i := i+1;	
+	end 
+	
+end.
